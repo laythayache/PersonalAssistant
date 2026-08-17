@@ -27,24 +27,36 @@ the parsing, date and reconciliation logic is actually right.
 You need a Mac running **Xcode 26 or later**, and the iPhone physically plugged into it. Apple ships
 no iOS toolchain for Windows, and signing for a real device needs Apple's codesign tools.
 
+### Step 0 — check the Mac can do this at all, before anything else
+
+The repo is **private**, so `git clone` on someone else's Mac would prompt for your GitHub
+credentials and leave them in that machine's keychain. Don't. Get the code as a ZIP instead:
+
+1. In Safari on the Mac, sign in to `github.com` as yourself.
+2. Go to `github.com/laythayache/PersonalAssistant`
+3. Green **Code** button → **Download ZIP**. Double-click it in Downloads to unpack.
+
+Nothing of yours is left behind, and re-downloading is how you pick up fixes later.
+
 ### Step 1 — build and test it (no signing, no phone, no Apple ID)
 
-At the Mac, in Terminal. Two commands.
+Open **Terminal** on the Mac and run these two lines. This is zsh, not PowerShell — everything here
+is macOS syntax.
 
 ```bash
-git clone https://github.com/laythayache/PersonalAssistant.git && cd PersonalAssistant
+cd ~/Downloads/PersonalAssistant-main
 bash Scripts/build-on-mac.sh
 ```
 
 The script checks the Mac is capable **before** doing anything slow, then builds and runs the tests
 with code signing switched off — so this step cannot fail for signing reasons. It writes
-`build-report.txt`. Send that file back.
+`build-report.txt` in that folder. Send me that file.
 
-It stops immediately with a plain-English explanation if Xcode is older than 26 or the iOS 26
+It stops immediately, with a plain-English explanation, if Xcode is older than 26 or the iOS 26
 simulator runtime is missing. **Xcode 26 is not negotiable**: AlarmKit and Foundation Models do not
-exist in any earlier SDK.
+exist in any earlier SDK, so no setting can be lowered to work around it.
 
-To pick up fixes afterwards: `git pull && bash Scripts/build-on-mac.sh`
+To pick up fixes afterwards, re-download the ZIP and run the same two lines.
 
 ### Step 2 — put it on the phone
 
