@@ -24,8 +24,16 @@ nothing is indistinguishable from a green build that proved everything.
 **Fix.** Exclude `CoreData: error:` and `[error]` os_log lines from the error count. Read the test
 count from Swift Testing's own `Test run with N tests` summary, and **fail the build when N is 0**.
 
-Verified after the fix by reading the downloaded log directly:
-`Test run with 72 tests in 5 suites passed`, 0 failures, 0 lines matching `*.swift:N:M: error:`.
+**Verified both halves, because a guard that only ever sees the good case is not a guard.**
+
+- *Allows the good case:* run `32028368521` reported `COMPILE ERRORS: (none)` and
+  `tests executed: 72`, agreeing exactly with what reading the downloaded log by hand had shown.
+- *Blocks the bad case:* the extraction logic was run locally against a synthetic log of a green
+  build that executed zero tests, and against a log with no test summary at all. Both yield
+  `count=0` and fire the guard. A log claiming 3 tests yields 3 — the number is read, not assumed.
+
+The local half matters: proving it on a runner would have cost about 60 billed minutes to learn
+something a shell loop answers for free.
 
 ---
 
