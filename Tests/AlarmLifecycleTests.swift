@@ -177,7 +177,10 @@ struct AlarmLifecycleTests {
         _ = await env.executor.execute(Fixture.parse("Move the Riad thing to Friday."), now: Fixture.now)
 
         let old = try #require(env.store.occurrence(id: result.occurrenceID))
-        let new = try #require(env.store.occurrence(id: try #require(old.postponedToID)))
+        // Two statements, not one: a #require nested inside another #require makes the macro
+        // expand into itself and the compiler rejects it as recursive expansion.
+        let replacementID = try #require(old.postponedToID)
+        let new = try #require(env.store.occurrence(id: replacementID))
         #expect(Fixture.parts(new.scheduledAt).day == 21)
         #expect(Fixture.parts(new.scheduledAt).hour == 16,
                 "16:00 was carried over rather than replaced by the default hour")
