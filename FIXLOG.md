@@ -4,6 +4,33 @@ Newest first. Symptom → root cause → fix.
 
 ---
 
+## 2026-08-17 — `LiveActivityIntent` not found, and nine actor-isolation errors
+
+**Symptom.** First real compile, on a GitHub `macos-26` runner with Xcode 26. Eleven errors, every
+one of them in `App/Services/AlarmKitScheduler.swift`. Run `32027188666`, `xcodebuild` exit 65.
+
+**Root cause, part one.** `cannot find type 'LiveActivityIntent' in scope`. It is an **AppIntents**
+type, not an AlarmKit one — AlarmKit merely accepts it as a parameter. The file imported AlarmKit
+and assumed the intent type came with it. That single missing import also produced the
+`generic parameter 'Metadata' could not be inferred` error further down: with the intent arguments
+failing to type-check, Swift could not infer `AlarmConfiguration<Metadata>` either. One cause, two
+symptoms, twenty lines apart.
+
+**Root cause, part two.** The other nine were `DebugLog` calls. `DebugLog` is `@MainActor`;
+`AlarmKitScheduler` was not. Every log line was therefore a cross-actor call needing `await`, and
+the two inside the nonisolated `static func translate` could not be awaited at all.
+
+**Fix.** `import AppIntents`, and isolate `AlarmScheduling` and both conformers to the main actor.
+Every caller — executor, reconciler, review service, engine, tests — was already on the main actor,
+so this removed the whole class of error rather than papering over nine instances of it.
+`AssistantEngine.init` also had to stop defaulting `scheduler` to `AlarmKitScheduler()`, because a
+default argument is evaluated at the call site and that type is now isolated.
+
+**Confirmed, not assumed:** `AlarmManager.authorizationState` and `.alarms` are throwing but **not**
+async — the compiler flagged neither. The original reading of the API was right on that point.
+
+---
+
 ## 2026-08-17 — Postpone read the wrong half of the sentence as the new time
 
 **Symptom.** `Postpone that until tomorrow at 3` resolved to tomorrow at **09:00** and treated
