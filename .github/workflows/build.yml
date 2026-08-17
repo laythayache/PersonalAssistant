@@ -1,0 +1,134 @@
+name: Build
+
+# macOS compute without owning a Mac. This is what makes the project verifiable at all —
+# everything was authored on Windows, where not one line of it can be compiled.
+#
+# Markdown and the helper script are excluded on purpose: macOS runner minutes are billed at 10x,
+# so a docs-only commit must never burn a build.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'Scripts/**'
+      - '.gitignore'
+      - '.gitattributes'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Compile and test
+    runs-on: macos-26
+    timeout-minutes: 40
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: |
+          echo "macOS:  $(sw_vers -productVersion)  ($(uname -m))"
+          echo "Xcode:  $(xcodebuild -version | head -1)"
+          echo "active: $(xcode-select -p)"
+          echo
+          echo "iOS SDKs:"
+          xcodebuild -showsdks 2>/dev/null | grep -i "iOS" || echo "  none"
+
+      # AlarmKit and Foundation Models exist only from the iOS 26 SDK. If the runner image ever
+      # rolls back below that, fail here with a clear reason rather than 400 confusing errors.
+      - name: Require Xcode 26
+        run: |
+          MAJOR=$(xcodebuild -version | head -1 | awk '{print $2}' | cut -d. -f1)
+          echo "Xcode major version: $MAJOR"
+          if [ "$MAJOR" -lt 26 ]; then
+            echo "::error::This project needs Xcode 26+. Runner has $MAJOR. AlarmKit and Foundation Models do not exist in earlier SDKs."
+            exit 1
+          fi
+
+      - name: Choose a simulator
+        id: sim
+        run: |
+          NAME=$(xcrun simctl list devices available \
+            | awk '/^-- iOS/{f=1;next} /^--/{f=0} f' \
+            | grep -E 'iPhone' | head -1 \
+            | sed -E 's/^[[:space:]]*//; s/ \(.*//')
+          if [ -z "$NAME" ]; then
+            echo "::error::No iOS simulator available on this runner."
+            xcrun simctl list devices available
+            exit 1
+          fi
+          echo "Using: $NAME"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+
+      # `test` compiles the app, the widget extension and the test bundle, then runs the tests.
+      # One invocation instead of a separate build step — on a 10x-billed runner that matters.
+      - name: Build and test
+        id: test
+        run: |
+          set +e
+          set -o pipefail
+          xcodebuild \
+            -project PersonalAssistant.xcodeproj \
+            -scheme PersonalAssistant \
+            -destination "platform=iOS Simulator,name=${{ steps.sim.outputs.name }}" \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            test 2>&1 | tee build.log
+          echo "status=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Compile errors
+        if: always()
+        run: |
+          echo "=============== COMPILE ERRORS (deduplicated) ==============="
+          grep -E '(^|[[:space:]])error:' build.log | sort -u | head -200 || echo "(none)"
+          echo
+          echo "=============== TEST FAILURES ==============="
+          grep -E "Test case .* failed|recorded an issue|XCTAssert|Issue recorded" build.log \
+            | sort -u | head -100 || echo "(none)"
+          echo
+          echo "=============== COUNTS ==============="
+          echo "errors:        $(grep -cE '(^|[[:space:]])error:' build.log || true)"
+          echo "warnings:      $(grep -cE '(^|[[:space:]])warning:' build.log || true)"
+          echo "tests passed:  $(grep -cE 'Test case .* passed|✔ Test .* passed' build.log || true)"
+
+      - name: Upload full log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          retention-days: 14
+
+      - name: Fail if the build or tests failed
+        if: steps.test.outputs.status != '0'
+        run: |
+          echo "::error::xcodebuild exited ${{ steps.test.outputs.status }} — see 'Compile errors' above."
+          exit 1
+
+      # Only reached once everything compiles and passes. Produces an unsigned .ipa that can be
+      # signed and installed from Windows with Sideloadly or AltStore — no Mac anywhere in the loop.
+      - name: Package unsigned .ipa for sideloading
+        run: |
+          set -eo pipefail
+          xcodebuild \
+            -project PersonalAssistant.xcodeproj \
+            -scheme PersonalAssistant \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath dd \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build | tail -20
+          mkdir -p Payload
+          cp -R dd/Build/Products/Release-iphoneos/PersonalAssistant.app Payload/
+          zip -qry PersonalAssistant-unsigned.ipa Payload
+          ls -lh PersonalAssistant-unsigned.ipa
+
+      - name: Upload .ipa
+        uses: actions/upload-artifact@v4
+        with:
+          name: PersonalAssistant-unsigned-ipa
+          path: PersonalAssistant-unsigned.ipa
+          retention-days: 30
