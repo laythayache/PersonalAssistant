@@ -4,6 +4,56 @@ Newest first. Symptom → root cause → fix.
 
 ---
 
+## 2026-08-17 — CI reported 884 errors on a passing build
+
+**Symptom.** Run `32027630133` went green, produced the `.ipa`, and its own summary said
+`errors: 884`. Both cannot be true.
+
+**Root cause.** The workflow counted errors with `grep -E '(^|[[:space:]])error:'`. While SwiftData
+creates a store, the simulator emits hundreds of `CoreData: error:` lines — routine runtime chatter
+that the pattern happily matched. All 884 were noise; there were **zero** real compiler errors.
+
+**Why it mattered even though the build passed.** The number is what a future run gets read against.
+884 phantom errors would bury the one real error that actually broke something.
+
+**Second problem, found while fixing the first.** `tests passed:` printed nothing, because the grep
+was written for XCTest's output and the suite uses Swift Testing. That is the more dangerous of the
+two: **`xcodebuild` exits 0 when a test bundle runs zero tests**, so a green build that proved
+nothing is indistinguishable from a green build that proved everything.
+
+**Fix.** Exclude `CoreData: error:` and `[error]` os_log lines from the error count. Read the test
+count from Swift Testing's own `Test run with N tests` summary, and **fail the build when N is 0**.
+
+Verified after the fix by reading the downloaded log directly:
+`Test run with 72 tests in 5 suites passed`, 0 failures, 0 lines matching `*.swift:N:M: error:`.
+
+---
+
+## 2026-08-17 — Recursive macro expansion from a nested `#require`
+
+**Symptom.** With the app target compiling clean, run `32027462203` failed with a single error and
+no file of ours named in it:
+`error: recursive expansion of macro 'require(_:_:sourceLocation:)'`.
+
+**Root cause.** `Tests/AlarmLifecycleTests.swift` had a `#require` inside another `#require`:
+
+```swift
+let new = try #require(env.store.occurrence(id: try #require(old.postponedToID)))
+```
+
+Swift Testing's `#require` expands into a form containing `#require`, so nesting it makes the macro
+expand into itself. The error surfaced against a generated `@__swiftmacro_…` file, which is why it
+did not point at any source line worth reading.
+
+**Fix.** Split it into two statements. `#expect` containing a `#require` is fine — only
+`#require` inside `#require` recurses.
+
+**Why it only appeared now:** the test bundle builds *after* the app target, so the previous run
+never reached it. Compiling is not the same as compiling the tests, which is not the same as
+passing them.
+
+---
+
 ## 2026-08-17 — `LiveActivityIntent` not found, and nine actor-isolation errors
 
 **Symptom.** First real compile, on a GitHub `macos-26` runner with Xcode 26. Eleven errors, every

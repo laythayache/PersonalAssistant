@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm -rf /tmp/paipa)",
+      "Bash(mkdir -p /tmp/paipa)",
+      "Bash(unzip -l PersonalAssistant-unsigned.ipa)",
+      "Bash(grep -E \"Payload/PersonalAssistant.app/\\(PersonalAssistant$|Info.plist|PlugIns\\)\")",
+      "Bash(xargs -I{} echo \"widget files inside: {}\")"
+    ]
+  }
+}

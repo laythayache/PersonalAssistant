@@ -77,20 +77,40 @@ jobs:
           echo "status=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
           exit 0
 
-      - name: Compile errors
+      # The simulator emits hundreds of `CoreData: error:` lines while SwiftData creates a store.
+      # They are routine runtime chatter, not build failures — but a naive `grep error:` counts
+      # them, and 884 phantom errors would bury the one real error that actually matters.
+      - name: Results
+        id: results
         if: always()
         run: |
-          echo "=============== COMPILE ERRORS (deduplicated) ==============="
-          grep -E '(^|[[:space:]])error:' build.log | sort -u | head -200 || echo "(none)"
+          COMPILE_ERRORS=$(grep -aE '(^|[[:space:]])error:' build.log \
+            | grep -avE 'CoreData: error:|\[error\]' | sort -u || true)
+
+          echo "=============== COMPILE ERRORS ==============="
+          if [ -n "$COMPILE_ERRORS" ]; then printf '%s\n' "$COMPILE_ERRORS" | head -200; else echo "(none)"; fi
+
           echo
           echo "=============== TEST FAILURES ==============="
-          grep -E "Test case .* failed|recorded an issue|XCTAssert|Issue recorded" build.log \
+          grep -aE "Test .* failed after|recorded an issue|XCTAssert" build.log \
             | sort -u | head -100 || echo "(none)"
+
           echo
-          echo "=============== COUNTS ==============="
-          echo "errors:        $(grep -cE '(^|[[:space:]])error:' build.log || true)"
-          echo "warnings:      $(grep -cE '(^|[[:space:]])warning:' build.log || true)"
-          echo "tests passed:  $(grep -cE 'Test case .* passed|✔ Test .* passed' build.log || true)"
+          echo "=============== SUMMARY ==============="
+          grep -aE "Test run with .* tests" build.log || echo "NO TEST RUN SUMMARY FOUND"
+          COUNT=$(grep -aoE "Test run with [0-9]+ tests" build.log | grep -oE '[0-9]+' | head -1)
+          COUNT=${COUNT:-0}
+          echo "tests executed: $COUNT"
+          echo "warnings:       $(grep -acE '(^|[[:space:]])warning:' build.log || true)"
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+
+      # xcodebuild exits 0 when a test bundle runs zero tests. A green build that proved nothing
+      # looks identical to a green build that proved everything, so check for it explicitly.
+      - name: Fail if no tests actually ran
+        if: always() && steps.results.outputs.count == '0'
+        run: |
+          echo "::error::The build went green but zero tests executed. That is not a pass."
+          exit 1
 
       - name: Upload full log
         if: always()

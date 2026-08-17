@@ -9,16 +9,26 @@ Design decisions and the two Apple limitations that shaped them: **[ARCHITECTURE
 
 ## Status, stated plainly
 
+Verified by [CI](../../actions), on a real `macos-26` runner with Xcode 26.5:
+
 | | |
 |---|---|
-| Written | ✅ complete — app, widget extension, tests, Xcode project |
-| Compiled | ❌ **never** — this was built on Windows. No Xcode, no Swift toolchain, no Mac. |
-| Run | ❌ never |
-| On a device | ❌ never |
+| Compiles | ✅ app, widget extension and tests, 0 compiler errors, 1 warning |
+| Tests | ✅ **72 tests in 5 suites, 0 failures** |
+| Builds a device binary | ✅ arm64, links AlarmKit · FoundationModels · ActivityKit · AppIntents · SwiftData |
+| Produces an installable `.ipa` | ✅ artifact on every green run, widget embedded |
 
-Nothing below has been executed. Treat "it builds" as unproven until you have seen it build.
-The test suite is the first thing to run, because it is the only thing that can tell you whether
-the parsing, date and reconciliation logic is actually right.
+Not verified, and not claimed:
+
+| | |
+|---|---|
+| An alarm has rung | ❌ **never** — needs a physical device |
+| The UI has been seen | ❌ never rendered, not once |
+| AlarmKit's real behaviour | ❌ the tests use a fake scheduler, so they prove the *app's* logic, not Apple's |
+
+The 72 passing tests cover the parsing, dates, collisions, matching, recurrence and reconciliation —
+including every sentence in the spec, in English, Arabic and Arabizi. That is the logic proven.
+Whether a phone actually wakes you up is a separate question that only a phone can answer.
 
 ---
 
