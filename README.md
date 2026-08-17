@@ -24,10 +24,36 @@ the parsing, date and reconciliation logic is actually right.
 
 ## Getting it onto the iPhone 17
 
-You need a Mac running **Xcode 26 or later**, and the iPhone physically plugged into it. Apple ships
-no iOS toolchain for Windows, and signing for a real device needs Apple's codesign tools.
+**You do not need to own a Mac.** You need *macOS compute*, which is not the same thing —
+[GitHub Actions](.github/workflows/build.yml) runs `macos-26` with Xcode 26 preinstalled, and that
+does the compiling. What no cloud runner can do is see a phone over USB, so only the last step
+needs deciding.
 
-### Step 0 — check the Mac can do this at all, before anything else
+### Pick one
+
+| | Mac needed | Cost | App stops working after | Cable |
+|---|---|---|---|---|
+| **A. CI → sideload from Windows** | no | free | **7 days** | USB to the PC |
+| **B. CI → TestFlight** | no | $99/yr | 90 days | none at all |
+| **C. Mac with Xcode, direct install** | yes | free | 7 days | USB to the Mac |
+
+**A** is the way to find out whether this works, today, for nothing. CI already builds an unsigned
+`.ipa` on every green run — download the artifact from the Actions tab, then sign and install it
+from Windows with [Sideloadly](https://sideloadly.io) using your own Apple ID. AltStore does the
+same and can auto-refresh over WiFi, which softens the 7-day expiry.
+
+**B** is the right end state. The same workflow can upload straight to TestFlight with an App Store
+Connect API key, so the phone never touches a cable and builds last 90 days. It needs the paid
+Apple Developer Program. For an app whose entire job is waking you up, a profile that silently
+expires mid-week is the real problem — not the build.
+
+**C** only if a Mac turns up anyway. Steps are below.
+
+---
+
+### If you do get to a Mac
+
+#### Step 0 — check it can do this at all, before anything else
 
 The repo is **private**, so `git clone` on someone else's Mac would prompt for your GitHub
 credentials and leave them in that machine's keychain. Don't. Get the code as a ZIP instead:
@@ -38,7 +64,7 @@ credentials and leave them in that machine's keychain. Don't. Get the code as a 
 
 Nothing of yours is left behind, and re-downloading is how you pick up fixes later.
 
-### Step 1 — build and test it (no signing, no phone, no Apple ID)
+#### Step 1 — build and test it (no signing, no phone, no Apple ID)
 
 Open **Terminal** on the Mac and run these two lines. This is zsh, not PowerShell — everything here
 is macOS syntax.
@@ -58,7 +84,7 @@ exist in any earlier SDK, so no setting can be lowered to work around it.
 
 To pick up fixes afterwards, re-download the ZIP and run the same two lines.
 
-### Step 2 — put it on the phone
+#### Step 2 — put it on the phone
 
 Only once step 1 is green.
 
