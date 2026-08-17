@@ -1,14 +1,21 @@
 import Foundation
 import SwiftUI
+// `LiveActivityIntent` is an AppIntents type, not an AlarmKit one — AlarmKit only takes it as a
+// parameter. Without this import the intent arguments fail to type-check, which in turn makes
+// AlarmConfiguration's Metadata generic un-inferrable.
+import AppIntents
 
 #if canImport(AlarmKit)
 import AlarmKit
 #endif
 
-/// The only file in the project that imports AlarmKit.
+/// Everything the app says to the system alarm clock.
 ///
-/// If Apple moves an argument label between SDK builds, this is the single file that needs a
-/// fix-it. Everything else in the app is written against `AlarmScheduling`.
+/// Main-actor isolated to match `AlarmScheduling`. It is called only from the executor, the
+/// reconciler and the review service — all of which are already on the main actor — and it logs
+/// through `DebugLog`, which is main-actor too. Leaving it nonisolated bought nothing and made
+/// every log line a cross-actor hop.
+@MainActor
 final class AlarmKitScheduler: AlarmScheduling {
 
     /// Alarms scheduled as a rolling window can pile up; the system enforces its own ceiling and

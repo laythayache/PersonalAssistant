@@ -5,6 +5,10 @@ import Foundation
 /// Only `AlarmKitScheduler` implements this against the real framework. The executor, the
 /// reconciler and every test talk to this protocol, which is what makes the alarm behaviour
 /// testable on a machine with no alarms at all.
+///
+/// Main-actor isolated because every caller already is, and because the store it is co-ordinated
+/// with is a `ModelContext` that cannot leave the main actor anyway.
+@MainActor
 protocol AlarmScheduling: AnyObject {
     func requestAuthorization() async -> Bool
     func isAuthorized() async -> Bool
@@ -62,6 +66,7 @@ enum AlarmSchedulingError: LocalizedError, Equatable {
 
 /// Used by tests and SwiftUI previews. Behaves like a system that always says yes and forgets
 /// nothing, so reconciliation logic can be exercised by deleting from `ids` directly.
+@MainActor
 final class InMemoryAlarmScheduler: AlarmScheduling {
     private(set) var ids: Set<UUID> = []
     private(set) var requests: [UUID: AlarmScheduleRequest] = [:]

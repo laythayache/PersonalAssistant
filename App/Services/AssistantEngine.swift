@@ -44,9 +44,12 @@ final class AssistantEngine {
     var authorizationDenied = false
     var lastReconcileSummary: String?
 
+    /// `scheduler` defaults to nil rather than to `AlarmKitScheduler()`: a default argument is
+    /// evaluated at the call site, and that type is now main-actor isolated.
     init(context: ModelContext,
-         scheduler: AlarmScheduling = AlarmKitScheduler(),
+         scheduler: AlarmScheduling? = nil,
          calendar: Calendar = .current) {
+        let scheduler = scheduler ?? AlarmKitScheduler()
         self.calendar = calendar
         self.scheduler = scheduler
         let store = Store(context: context)
