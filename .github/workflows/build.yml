@@ -3,8 +3,9 @@ name: Build
 # macOS compute without owning a Mac. This is what makes the project verifiable at all —
 # everything was authored on Windows, where not one line of it can be compiled.
 #
-# Markdown and the helper script are excluded on purpose: macOS runner minutes are billed at 10x,
-# so a docs-only commit must never burn a build.
+# The repo is public, so standard GitHub-hosted runners are free and unmetered. The paths-ignore
+# list is kept anyway: a docs-only commit has nothing to compile, and a run that cannot fail
+# usefully is just noise in the history.
 
 on:
   push:

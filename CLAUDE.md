@@ -20,7 +20,12 @@ of truth. If the two ever disagree, say so out loud rather than picking one.
   SSH route from the Windows PC, and iOS cannot be compiled on Windows. Deliberate exception to the
   global rule, for a physical reason. Hand over **one script**, not a stream of pasted commands.
   The Mac is **zsh, not PowerShell** — the usual shell rule is inverted on that machine only.
-- **blast radius:** none. Nothing shared, nothing deployed.
+- **blast radius:** no infrastructure — but **this repo is PUBLIC.** Every push is world-readable
+  the moment it lands, and permanent: rewriting history does not recall forks, caches or scrapers.
+  Verified clean when it was published (0 credential matches in the tree *and* in all history, no
+  `.env`/`.p8`/`.pem` ever committed, commit author is a GitHub noreply address). **Never commit an
+  App Store Connect `.p8`, a provisioning profile, or any key here** — those belong in encrypted
+  repository secrets. Public is deliberate: it makes the macOS CI runners free and unmetered.
 - **status:** confirmed 2026-08-17
 
 ---
