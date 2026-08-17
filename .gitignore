@@ -29,6 +29,12 @@ xcuserdata/
 build-report.txt
 build-full.log
 
+## Output of Scripts/ship-testflight.sh — archives, logs, and the .ipa itself.
+## ExportOptions.plist carries the builder's Team ID and must never reach this public repo.
+build/
+ExportOptions.plist
+*.xcarchive
+
 ## Secrets — never commit
 *.mobileprovision
 *.p12

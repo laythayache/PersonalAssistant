@@ -1,7 +1,24 @@
 # PersonalAssistant — repo notes
 
-Global rules in `C:\Users\user\.claude\CLAUDE.md` apply here and are not repeated.
-Only what is specific to this project is written below.
+## → If you are running on a Mac, read [SHIP-TO-TESTFLIGHT.md](SHIP-TO-TESTFLIGHT.md) first
+
+You are almost certainly the **build agent**: this project is authored on Windows, where iOS cannot
+be compiled at all, so anything happening on a Mac is there to sign and ship it. That document is
+self-contained and is the whole job. Come back here only if you need background.
+
+Three things that apply to you regardless:
+
+1. **This repository is PUBLIC.** Never commit a `.p8`, a provisioning profile, a certificate, an
+   email address, or `ExportOptions.plist`. A push is world-readable instantly and permanently.
+2. **Scope is signing and shipping.** Do not refactor, redesign, or "improve" anything. If something
+   looks wrong, put it in your report rather than in a commit.
+3. **Never force-push.** The remote is the only transport between the Mac and the author's Windows
+   machine.
+
+---
+
+Global rules in `C:\Users\user\.claude\CLAUDE.md` apply on the author's machine and are not repeated
+here. Only what is specific to this project is written below.
 
 ---
 
