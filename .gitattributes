@@ -1,0 +1,14 @@
+# Shell scripts in this repo are written on Windows and run on macOS. Without this, git hands the
+# Mac a file with CRLF line endings and bash fails with "bad interpreter: /bin/bash^M" — which
+# looks like a broken script rather than a line-ending problem.
+* text=auto eol=lf
+*.sh text eol=lf
+*.swift text eol=lf
+*.plist text eol=lf
+*.pbxproj text eol=lf
+*.xcscheme text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+
+*.png binary

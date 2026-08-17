@@ -1,0 +1,64 @@
+# Repair tool only. The checked-in PersonalAssistant.xcodeproj is the project you open.
+# If Xcode ever refuses to open it, regenerate a guaranteed-valid one:
+#     brew install xcodegen && xcodegen generate
+name: PersonalAssistant
+options:
+  bundleIdPrefix: com.laythayache
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    SWIFT_STRICT_CONCURRENCY: minimal
+    TARGETED_DEVICE_FAMILY: "1"
+    CODE_SIGN_STYLE: Automatic
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+
+targets:
+  PersonalAssistant:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+      - path: Shared
+    settings:
+      base:
+        INFOPLIST_FILE: Config/App-Info.plist
+        GENERATE_INFOPLIST_FILE: "NO"
+        PRODUCT_BUNDLE_IDENTIFIER: com.laythayache.PersonalAssistant
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        ENABLE_PREVIEWS: "YES"
+    dependencies:
+      - target: PersonalAssistantWidget
+        embed: true
+
+  PersonalAssistantWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: Widget
+      - path: Shared
+    settings:
+      base:
+        INFOPLIST_FILE: Config/Widget-Info.plist
+        GENERATE_INFOPLIST_FILE: "NO"
+        PRODUCT_BUNDLE_IDENTIFIER: com.laythayache.PersonalAssistant.Widget
+        SKIP_INSTALL: "YES"
+        ENABLE_PREVIEWS: "YES"
+
+  PersonalAssistantTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests
+      - path: Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.laythayache.PersonalAssistantTests
+        GENERATE_INFOPLIST_FILE: "YES"
+    dependencies:
+      - target: PersonalAssistant
